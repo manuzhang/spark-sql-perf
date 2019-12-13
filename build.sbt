@@ -5,18 +5,18 @@ name := "spark-sql-perf"
 
 organization := "com.databricks"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.8"
 
 crossScalaVersions := Seq("2.11.12","2.12.8")
 
-sparkPackageName := "databricks/spark-sql-perf"
+assemblyOption in assembly := (assemblyOption in assembly).value.copy(includeScala = false)
+
+assemblyJarName in assembly := s"${name.value}-assembly_${scalaBinaryVersion.value}-${version.value}.jar"
+
+// work around the restriction that Spark dependencies must be added with sparkVersion and sparkComponents"
 
 // All Spark Packages need a license
 licenses := Seq("Apache-2.0" -> url("http://opensource.org/licenses/Apache-2.0"))
-
-sparkVersion := "2.4.0"
-
-sparkComponents ++= Seq("sql", "hive", "mllib")
 
 
 initialCommands in console :=
@@ -32,11 +32,19 @@ initialCommands in console :=
     |import sqlContext.implicits._
   """.stripMargin
 
+val sparkVersion = "3.0.0-preview"
+
+libraryDependencies ++= Seq("sql", "hive", "mllib").map { name =>
+  "org.apache.spark" %% s"spark-$name" % sparkVersion % "provided"
+}
+
 libraryDependencies += "com.github.scopt" %% "scopt" % "3.7.1"
 
 libraryDependencies += "com.twitter" %% "util-jvm" % "6.45.0" % "provided"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % "test"
+
+libraryDependencies += ("org.apache.spark" %% "spark-hive" % sparkVersion classifier "tests") % "test"
 
 libraryDependencies += "org.yaml" % "snakeyaml" % "1.23"
 

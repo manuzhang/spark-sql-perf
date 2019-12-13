@@ -54,9 +54,9 @@ class Query(
   }
 
   lazy val tablesInvolved = buildDataFrame.queryExecution.logical collect {
-    case UnresolvedRelation(tableIdentifier) => {
+    case r: UnresolvedRelation => {
       // We are ignoring the database name.
-      tableIdentifier.table
+      r.tableName
     }
   }
 
@@ -91,7 +91,7 @@ class Query(
 
         physicalOperators.reverse.map {
           case (index, node) =>
-            messages += s"Breakdown: ${node.simpleString}"
+            messages += s"Breakdown: ${node.simpleString(Int.MaxValue)}"
             val newNode = buildDataFrame.queryExecution.executedPlan.p(index)
             val executionTime = measureTimeMs {
               newNode.execute().foreach((row: Any) => Unit)
@@ -104,7 +104,7 @@ class Query(
 
             BreakdownResult(
               node.nodeName,
-              node.simpleString.replaceAll("#\\d+", ""),
+              node.simpleString(Int.MaxValue).replaceAll("#\\d+", ""),
               index,
               childIndexes,
               executionTime,

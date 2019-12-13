@@ -3,22 +3,21 @@ package com.databricks.spark.sql.perf.mllib
 
 import scala.io.Source
 import scala.language.implicitConversions
-
 import org.slf4j.LoggerFactory
-
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
-
 import com.databricks.spark.sql.perf._
 
 
 class MLLib(sqlContext: SQLContext)
   extends Benchmark(sqlContext) with Serializable {
 
-  def this() = this(SQLContext.getOrCreate(SparkContext.getOrCreate()))
+  def this() = this(SparkSession.builder().getOrCreate().sqlContext)
 }
 
 object MLLib {
+
+  lazy val logger = LoggerFactory.getLogger(this.getClass.getName)
 
   /**
    * Runs a set of preprogrammed experiments and blocks on completion.
@@ -26,9 +25,6 @@ object MLLib {
    * @param runConfig a configuration that is av
    * @return
    */
-
-  lazy val logger = LoggerFactory.getLogger(this.getClass.getName)
-
   def runDefault(runConfig: RunConfig): DataFrame = {
     val ml = new MLLib()
     val benchmarks = MLBenchmarks.benchmarkObjects

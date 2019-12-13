@@ -116,5 +116,53 @@ class TPCDS(@transient sqlContext: SQLContext)
   }
 }
 
+object TPCDS {
+
+  case class Config (
+    database: String = null,
+    resultLocation: String = null,
+    iteration: Int = 1,
+    timeout: Int = 86400,
+    filter: String = "")
+
+  val parser = new scopt.OptionParser[Config]("scopt") {
+    head("tpcds", "1.x")
+
+    opt[String]('d', "database").required().action((x,c) =>
+      c.copy(database = x)).text("databases of tpcds")
+
+    opt[String]('r', "result location").required().action((x, c) =>
+      c.copy(resultLocation = x)).text("location to store tpcds result")
+
+    opt[Int]('i', "iteration").action((x, c) =>
+      c.copy(iteration = x)).text("iterations")
+
+    opt[Int]('t', "timeout").action((x, c) =>
+      c.copy(timeout = x)).text("timeout of tpcds")
+
+    opt[String]('f', "filter").action((x, c) =>
+      c.copy(filter = x)).text("query filters")
+  }
+
+  def main(args: Array[String]): Unit = {
+
+    parser.parse(args, Config()) map { config =>
+      val spark = SparkSession.builder().enableHiveSupport().getOrCreate()
+      val tpcds = new TPCDS(sqlContext = spark.sqlContext)
+      spark.sql(s"use ${config.database}")
+      val queries = tpcds.tpcds2_4Queries.filter(
+        q => config.filter.split(",").map(f => s"$f-v2.4").contains(q.name))
+
+      val experiment = tpcds.runExperiment(
+        queries,
+        iterations = config.iteration,
+        resultLocation = config.resultLocation
+      )
+      experiment.waitForFinish(config.timeout)
+    } getOrElse {
+      print(parser.usage)
+    }
+  }
+}
 
 
